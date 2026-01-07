@@ -3,9 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>i</title>
+    <style>
+        body {
+            background-color: black;
+            color: white;
+            font-size: 120px;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        #time {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        #date {
+            text-align: center;
+            font-size: 80px;
+        }
+    </style>
 </head>
 <body>
-    hello
+    <div id="time"></div>
+    <div id="date"></div>
+    <script>
+        function updateDateTime() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString();
+            const dateString = now.toLocaleDateString();
+            document.getElementById('time').textContent = timeString;
+            document.getElementById('date').textContent = dateString;
+        }
+        
+        // Update immediately
+        updateDateTime();
+        
+        // Update every second
+        setInterval(updateDateTime, 1000);
+    </script>
 </body>
 </html>
