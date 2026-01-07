@@ -10,39 +10,20 @@
             color: white;
             font-size: 120px;
             font-family: monospace;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
             margin: 0;
-            position: relative;
-            overflow: hidden;
+            padding: 0;
+            text-align: center;
         }
         #time {
-            text-align: left;
-            margin-bottom: 40px;
+            margin: 40px 0;
         }
         #date {
-            text-align: center;
             font-size: 80px;
-            margin-bottom: 40px;
+            margin: 40px 0;
         }
         #weather {
-            text-align: center;
             font-size: 60px;
-        }
-        .star {
-            position: absolute;
-            color: rgb(154, 247, 253);
-            font-size: 15px;
-            animation: twinkle 3s infinite;
-            pointer-events: none;
-            transition: opacity 0.1s;
-        }
-        @keyframes twinkle {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0; }
+            margin: 40px 0;
         }
     </style>
 </head>
@@ -55,20 +36,24 @@
         const LATITUDE = 63.4305; // Trondheim latitude
         const LONGITUDE = 10.3951; // Trondheim longitude
         
+        function padZero(num) {
+            return (num < 10 ? '0' : '') + num;
+        }
+        
         function updateDateTime() {
             const now = new Date();
             
             // Format time as HH:MM:SS with consistent width
-            const hours = String(now.getHours()).padStart(2, '0');
-            const minutes = String(now.getMinutes()).padStart(2, '0');
-            const seconds = String(now.getSeconds()).padStart(2, '0');
-            const timeString = `${hours}:${minutes}:${seconds}`;
+            const hours = padZero(now.getHours());
+            const minutes = padZero(now.getMinutes());
+            const seconds = padZero(now.getSeconds());
+            const timeString = hours + ':' + minutes + ':' + seconds;
             
             // Format date as DD.MM.YY with dots
-            const day = String(now.getDate()).padStart(2, '0');
-            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = padZero(now.getDate());
+            const month = padZero(now.getMonth() + 1);
             const year = String(now.getFullYear()).slice(-2); // Last 2 digits of year
-            const dateString = `${day}.${month}.${year}`;
+            const dateString = day + '.' + month + '.' + year;
             
             document.getElementById('time').textContent = timeString;
             document.getElementById('date').textContent = dateString;
@@ -76,7 +61,7 @@
         
         function fetchWeather() {
             fetch(
-                `https://api.open-meteo.com/v1/forecast?latitude=${LATITUDE}&longitude=${LONGITUDE}&current=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto`
+                'https://api.open-meteo.com/v1/forecast?latitude=' + LATITUDE + '&longitude=' + LONGITUDE + '&current=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto'
             )
             .then(function(response) {
                 return response.json();
@@ -97,7 +82,7 @@
                     };
                     
                     const description = weatherDescriptions[weatherCode] || 'Unknown';
-                    document.getElementById('weather').textContent = `${temp}°C - ${description}`;
+                    document.getElementById('weather').textContent = temp + '°C - ' + description;
                 }
             })
             .catch(function(error) {
@@ -105,68 +90,12 @@
             });
         }
         
-        function moveStar(star) {
-            // Move star to new random position
-            star.style.left = Math.random() * 100 + '%';
-            star.style.top = Math.random() * 100 + '%';
-        }
-        
-        function createStars() {
-            // Remove existing stars
-            const existingStars = document.querySelectorAll('.star');
-            existingStars.forEach(star => star.remove());
-            
-            const numStars = 15;
-            const body = document.body;
-            
-            for (let i = 0; i < numStars; i++) {
-                const star = document.createElement('div');
-                star.className = 'star';
-                star.textContent = '✦';
-                
-                // Random positions scattered across the page
-                star.style.left = Math.random() * 100 + '%';
-                star.style.top = Math.random() * 100 + '%';
-                
-                // Random animation delay so stars don't all blink at once
-                const delay = Math.random() * 3;
-                star.style.animationDelay = delay + 's';
-                
-                // Track if we've moved this star when it reaches 0 opacity
-                star.movedAtZero = false;
-                
-                body.appendChild(star);
-            }
-        }
-        
-        function checkStars() {
-            const stars = document.querySelectorAll('.star');
-            stars.forEach(star => {
-                // Get computed style to check current opacity
-                const computedStyle = window.getComputedStyle(star);
-                const opacity = parseFloat(computedStyle.opacity);
-                
-                // If opacity is at or near 0 and we haven't moved this star yet
-                if (opacity < 0.1 && !star.movedAtZero) {
-                    moveStar(star);
-                    star.movedAtZero = true;
-                }
-                // Reset flag when opacity comes back up
-                else if (opacity > 0.5 && star.movedAtZero) {
-                    star.movedAtZero = false;
-                }
-            });
-        }
-        
         // Initialize
         updateDateTime();
         setInterval(updateDateTime, 1000);
-        createStars();
         fetchWeather();
         // Update weather every 30 minutes
         setInterval(fetchWeather, 30 * 60 * 1000);
-        // Check stars periodically to detect when they reach 0 opacity
-        setInterval(checkStars, 50);
     </script>
 </body>
 </html>
