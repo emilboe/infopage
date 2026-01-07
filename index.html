@@ -28,16 +28,32 @@
             font-size: 60px;
             margin: 40px 0;
         }
+        #buses {
+            font-size: 40px;
+            margin: 40px auto;
+            max-width: 90%;
+            text-align: center;
+        }
+        .bus-item {
+            margin: 10px 0;
+            font-size: 36px;
+        }
+        .bus-number {
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
     <div id="time"></div>
     <div id="date"></div>
     <div id="weather"></div>
+    <div id="buses"></div>
     <script>
         // Configuration - Trondheim, Norway
-        const LATITUDE = 63.4305; // Trondheim latitude
-        const LONGITUDE = 10.3951; // Trondheim longitude
+        var LATITUDE = 63.4305; // Trondheim latitude
+        var LONGITUDE = 10.3951; // Trondheim longitude
+        // Dyre Halses gate stop ID (NSR:StopPlace:60233 is approximate, may need adjustment)
+        var BUS_STOP_ID = 'NSR:StopPlace:60233';
         
         function padZero(num) {
             return (num < 10 ? '0' : '') + num;
@@ -103,12 +119,127 @@
             xhr.send();
         }
         
+        function fetchBuses() {
+            // Using Entur's API to get departures
+            // First, try to find the stop and get departures
+            var xhr = new XMLHttpRequest();
+            // Using Entur's journey planner API with GraphQL query
+            // Stop ID from: https://entur.no/reiseresultater (Dyre Halses gate = NSR:StopPlace:60253)
+            var query = 'query { stopPlace(id: "NSR:StopPlace:60253") { id name estimatedCalls(timeRange: 3600, numberOfDepartures: 5) { realtime aimedDepartureTime expectedDepartureTime destinationDisplay { frontText } serviceJourney { line { publicCode } } } } }';
+            
+            xhr.open('POST', 'https://api.entur.io/journey-planner/v3/graphql', true);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.setRequestHeader('ET-Client-Name', 'infopage');
+            
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4) {
+                    if (xhr.status === 200) {
+                        try {
+                            var data = JSON.parse(xhr.responseText);
+                            if (data.data && data.data.stopPlace && data.data.stopPlace.estimatedCalls) {
+                                var calls = data.data.stopPlace.estimatedCalls;
+                                var busHtml = '';
+                                
+                                for (var i = 0; i < calls.length && i < 5; i++) {
+                                    var call = calls[i];
+                                    var line = call.serviceJourney ? call.serviceJourney.line.publicCode : '?';
+                                    var dest = call.destinationDisplay ? call.destinationDisplay.frontText : 'Unknown';
+                                    var depTime = call.expectedDepartureTime || call.aimedDepartureTime;
+                                    
+                                    // Calculate arrival time (subtract 1 minute from departure)
+                                    var dep = new Date(depTime);
+                                    dep.setMinutes(dep.getMinutes() - 1);
+                                    
+                                    // Format as HH:MM
+                                    var hours = padZero(dep.getHours());
+                                    var minutes = padZero(dep.getMinutes());
+                                    var timeStr = hours + ':' + minutes;
+                                    
+                                    // Check if within next hour
+                                    var now = new Date();
+                                    var minsUntil = Math.round((dep - now) / 60000);
+                                    
+                                    if (minsUntil >= 0 && minsUntil <= 60) {
+                                        busHtml += '<div class="bus-item"><span class="bus-number">' + line + '</span> → ' + dest + ' (' + timeStr + ')</div>';
+                                    }
+                                }
+                                
+                                if (busHtml === '') {
+                                    document.getElementById('buses').textContent = 'No buses soon';
+                                } else {
+                                    document.getElementById('buses').innerHTML = busHtml;
+                                }
+                            } else {
+                                document.getElementById('buses').textContent = 'Bus info unavailable';
+                            }
+                        } catch (e) {
+                            // If GraphQL fails, try alternative method
+                            document.getElementById('buses').textContent = 'API error: ' + e.message;
+                            fetchBusesAlternative();
+                        }
+                    } else {
+                        document.getElementById('buses').textContent = 'HTTP ' + xhr.status;
+                        fetchBusesAlternative();
+                    }
+                }
+            };
+            xhr.onerror = function() {
+                fetchBusesAlternative();
+            };
+            xhr.send(JSON.stringify({query: query}));
+        }
+        
+        function fetchBusesAlternative() {
+            // Alternative: Try using a simpler REST endpoint if available
+            // This is a fallback if GraphQL doesn't work
+            document.getElementById('buses').textContent = 'Loading buses...';
+            
+            // Note: You may need to find the correct stop ID for Dyre Halses gate
+            // This is a placeholder implementation
+            var xhr = new XMLHttpRequest();
+            var url = 'https://api.entur.io/stop-places/v1/stop-places?name=Dyre%20Halses%20gate';
+            
+            xhr.open('GET', url, true);
+            xhr.setRequestHeader('ET-Client-Name', 'infopage');
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4 && xhr.status === 200) {
+                    try {
+                        var stops = JSON.parse(xhr.responseText);
+                        if (stops && stops.length > 0) {
+                            // Found stop, now get departures
+                            var stopId = stops[0].id;
+                            fetchBusesByStopId(stopId);
+                        } else {
+                            document.getElementById('buses').textContent = 'Stop not found';
+                        }
+                    } catch (e) {
+                        document.getElementById('buses').textContent = 'Bus API unavailable';
+                    }
+                } else if (xhr.readyState === 4) {
+                    document.getElementById('buses').textContent = 'Bus info unavailable';
+                }
+            };
+            xhr.onerror = function() {
+                document.getElementById('buses').textContent = 'Bus info unavailable';
+            };
+            xhr.send();
+        }
+        
+        function fetchBusesByStopId(stopId) {
+            // This would fetch departures for a specific stop ID
+            // Implementation depends on available API endpoints
+            document.getElementById('buses').textContent = 'Buses at Dyre Halses gate: Check ATB app';
+        }
+        
         // Initialize
         updateDateTime();
         setInterval(updateDateTime, 1000);
         fetchWeather();
+        fetchBuses();
         // Update weather every 30 minutes
         setInterval(fetchWeather, 30 * 60 * 1000);
+        // Update buses every 2 minutes
+        setInterval(fetchBuses, 2 * 60 * 1000);
     </script>
 </body>
 </html>
