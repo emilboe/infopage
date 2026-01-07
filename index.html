@@ -60,34 +60,44 @@
         }
         
         function fetchWeather() {
-            fetch(
-                'https://api.open-meteo.com/v1/forecast?latitude=' + LATITUDE + '&longitude=' + LONGITUDE + '&current=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto'
-            )
-            .then(function(response) {
-                return response.json();
-            })
-            .then(function(data) {
-                if (data.current) {
-                    const temp = Math.round(data.current.temperature_2m);
-                    const weatherCode = data.current.weather_code;
-                    
-                    // Convert weather code to description
-                    const weatherDescriptions = {
-                        0: 'Clear', 1: 'Mostly clear', 2: 'Partly cloudy', 3: 'Overcast',
-                        45: 'Foggy', 48: 'Foggy', 51: 'Light drizzle', 53: 'Drizzle', 55: 'Heavy drizzle',
-                        56: 'Freezing drizzle', 57: 'Freezing drizzle', 61: 'Light rain', 63: 'Rain', 65: 'Heavy rain',
-                        66: 'Freezing rain', 67: 'Freezing rain', 71: 'Light snow', 73: 'Snow', 75: 'Heavy snow',
-                        77: 'Snow grains', 80: 'Light showers', 81: 'Showers', 82: 'Heavy showers',
-                        85: 'Snow showers', 86: 'Snow showers', 95: 'Thunderstorm', 96: 'Thunderstorm', 99: 'Thunderstorm'
-                    };
-                    
-                    const description = weatherDescriptions[weatherCode] || 'Unknown';
-                    document.getElementById('weather').textContent = temp + '°C - ' + description;
+            var xhr = new XMLHttpRequest();
+            var url = 'https://api.open-meteo.com/v1/forecast?latitude=' + LATITUDE + '&longitude=' + LONGITUDE + '&current=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto';
+            
+            xhr.open('GET', url, true);
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4) {
+                    if (xhr.status === 200) {
+                        try {
+                            var data = JSON.parse(xhr.responseText);
+                            if (data.current) {
+                                var temp = Math.round(data.current.temperature_2m);
+                                var weatherCode = data.current.weather_code;
+                                
+                                // Convert weather code to description
+                                var weatherDescriptions = {
+                                    0: 'Clear', 1: 'Mostly clear', 2: 'Partly cloudy', 3: 'Overcast',
+                                    45: 'Foggy', 48: 'Foggy', 51: 'Light drizzle', 53: 'Drizzle', 55: 'Heavy drizzle',
+                                    56: 'Freezing drizzle', 57: 'Freezing drizzle', 61: 'Light rain', 63: 'Rain', 65: 'Heavy rain',
+                                    66: 'Freezing rain', 67: 'Freezing rain', 71: 'Light snow', 73: 'Snow', 75: 'Heavy snow',
+                                    77: 'Snow grains', 80: 'Light showers', 81: 'Showers', 82: 'Heavy showers',
+                                    85: 'Snow showers', 86: 'Snow showers', 95: 'Thunderstorm', 96: 'Thunderstorm', 99: 'Thunderstorm'
+                                };
+                                
+                                var description = weatherDescriptions[weatherCode] || 'Unknown';
+                                document.getElementById('weather').textContent = temp + '°C - ' + description;
+                            }
+                        } catch (e) {
+                            document.getElementById('weather').textContent = 'Weather unavailable';
+                        }
+                    } else {
+                        document.getElementById('weather').textContent = 'Weather unavailable';
+                    }
                 }
-            })
-            .catch(function(error) {
+            };
+            xhr.onerror = function() {
                 document.getElementById('weather').textContent = 'Weather unavailable';
-            });
+            };
+            xhr.send();
         }
         
         // Initialize
