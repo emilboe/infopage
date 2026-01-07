@@ -12,27 +12,58 @@
             font-family: monospace;
             margin: 0;
             padding: 0;
-            text-align: center;
-            border: 2px solid lightblue;
+            border-bottom: 1px solid lightblue;
             box-sizing: border-box;
             min-height: 100vh;
+            position: relative;
         }
-        #time {
-            margin: 40px 0;
+        #topSection {
+            margin: 40px;
+            overflow: hidden;
+        }
+        #leftSection {
+            float: left;
+            text-align: left;
         }
         #date {
+            font-size: 50px;
+            margin: 0 0 20px 0;
+        }
+        #time {
             font-size: 80px;
-            margin: 40px 0;
+            margin: 0;
+        }
+        .seconds {
+            font-size: 35px;
+            vertical-align: top;
+            margin-top: 10px;
         }
         #weather {
+            float: right;
+            text-align: right;
+        }
+        .weather-temp {
             font-size: 60px;
-            margin: 40px 0;
+            margin: 0 0 10px 0;
+        }
+        .weather-desc {
+            font-size: 40px;
+            margin: 0;
         }
         #buses {
             font-size: 40px;
-            margin: 40px auto;
-            max-width: 90%;
-            text-align: center;
+            margin: 40px;
+            text-align: left;
+            clear: both;
+        }
+        .bus-title {
+            font-size: 48px;
+            margin-bottom: 10px;
+            text-align: left;
+        }
+        .bus-separator {
+            border-bottom: 1px solid lightblue;
+            margin-bottom: 20px;
         }
         .bus-item {
             margin: 10px 0;
@@ -44,9 +75,13 @@
     </style>
 </head>
 <body>
-    <div id="time"></div>
-    <div id="date"></div>
-    <div id="weather"></div>
+    <div id="topSection">
+        <div id="leftSection">
+            <div id="date"></div>
+            <div id="time"></div>
+        </div>
+        <div id="weather"></div>
+    </div>
     <div id="buses"></div>
     <script>
         // Configuration - Trondheim, Norway
@@ -60,22 +95,29 @@
         }
         
         function updateDateTime() {
-            const now = new Date();
+            var now = new Date();
             
-            // Format time as HH:MM:SS with consistent width
-            const hours = padZero(now.getHours());
-            const minutes = padZero(now.getMinutes());
-            const seconds = padZero(now.getSeconds());
-            const timeString = hours + ':' + minutes + ':' + seconds;
+            // Format time as HH:MM:SS with smaller seconds
+            var hours = padZero(now.getHours());
+            var minutes = padZero(now.getMinutes());
+            var seconds = padZero(now.getSeconds());
+            var timeString = hours + ':' + minutes + '<span class="seconds">' + seconds + '</span>';
             
-            // Format date as DD.MM.YY with dots
-            const day = padZero(now.getDate());
-            const month = padZero(now.getMonth() + 1);
-            const year = String(now.getFullYear()).slice(-2); // Last 2 digits of year
-            const dateString = day + '.' + month + '.' + year;
+            // Norwegian day names
+            var dayNames = ['søn', 'man', 'tir', 'ons', 'tor', 'fre', 'lør'];
+            // Norwegian month names
+            var monthNames = ['januar', 'februar', 'mars', 'april', 'mai', 'juni', 
+                             'juli', 'august', 'september', 'oktober', 'november', 'desember'];
             
-            document.getElementById('time').textContent = timeString;
+            // Format date as "man 12. januar 2026"
+            var dayName = dayNames[now.getDay()];
+            var day = now.getDate();
+            var month = monthNames[now.getMonth()];
+            var year = now.getFullYear();
+            var dateString = dayName + ' ' + day + '. ' + month + ' ' + year;
+            
             document.getElementById('date').textContent = dateString;
+            document.getElementById('time').innerHTML = timeString;
         }
         
         function fetchWeather() {
@@ -103,18 +145,18 @@
                                 };
                                 
                                 var description = weatherDescriptions[weatherCode] || 'Unknown';
-                                document.getElementById('weather').textContent = temp + '°C - ' + description;
+                                document.getElementById('weather').innerHTML = '<div class="weather-temp">' + temp + '°C</div><div class="weather-desc">' + description + '</div>';
                             }
                         } catch (e) {
-                            document.getElementById('weather').textContent = 'Weather unavailable';
+                            document.getElementById('weather').innerHTML = '<div class="weather-temp">-</div><div class="weather-desc">Unavailable</div>';
                         }
                     } else {
-                        document.getElementById('weather').textContent = 'Weather unavailable';
+                        document.getElementById('weather').innerHTML = '<div class="weather-temp">-</div><div class="weather-desc">Unavailable</div>';
                     }
                 }
             };
             xhr.onerror = function() {
-                document.getElementById('weather').textContent = 'Weather unavailable';
+                document.getElementById('weather').innerHTML = '<div class="weather-temp">-</div><div class="weather-desc">Unavailable</div>';
             };
             xhr.send();
         }
@@ -165,20 +207,20 @@
                                 }
                                 
                                 if (busHtml === '') {
-                                    document.getElementById('buses').textContent = 'No buses soon';
+                                    document.getElementById('buses').innerHTML = '<div class="bus-title">Busstider</div><div class="bus-separator"></div><div>No buses soon</div>';
                                 } else {
-                                    document.getElementById('buses').innerHTML = busHtml;
+                                    document.getElementById('buses').innerHTML = '<div class="bus-title">Busstider</div><div class="bus-separator"></div>' + busHtml;
                                 }
                             } else {
-                                document.getElementById('buses').textContent = 'Bus info unavailable';
+                                document.getElementById('buses').innerHTML = '<div class="bus-title">Busstider</div><div class="bus-separator"></div><div>Bus info unavailable</div>';
                             }
                         } catch (e) {
                             // If GraphQL fails, try alternative method
-                            document.getElementById('buses').textContent = 'API error: ' + e.message;
+                            document.getElementById('buses').innerHTML = '<div class="bus-title">Busstider</div><div class="bus-separator"></div><div>API error: ' + e.message + '</div>';
                             fetchBusesAlternative();
                         }
                     } else {
-                        document.getElementById('buses').textContent = 'HTTP ' + xhr.status;
+                        document.getElementById('buses').innerHTML = '<div class="bus-title">Busstider</div><div class="bus-separator"></div><div>HTTP ' + xhr.status + '</div>';
                         fetchBusesAlternative();
                     }
                 }
@@ -192,10 +234,8 @@
         function fetchBusesAlternative() {
             // Alternative: Try using a simpler REST endpoint if available
             // This is a fallback if GraphQL doesn't work
-            document.getElementById('buses').textContent = 'Loading buses...';
+            document.getElementById('buses').innerHTML = '<div class="bus-title">Busstider</div><div class="bus-separator"></div><div>Loading buses...</div>';
             
-            // Note: You may need to find the correct stop ID for Dyre Halses gate
-            // This is a placeholder implementation
             var xhr = new XMLHttpRequest();
             var url = 'https://api.entur.io/stop-places/v1/stop-places?name=Dyre%20Halses%20gate';
             
@@ -210,17 +250,17 @@
                             var stopId = stops[0].id;
                             fetchBusesByStopId(stopId);
                         } else {
-                            document.getElementById('buses').textContent = 'Stop not found';
+                            document.getElementById('buses').innerHTML = '<div class="bus-title">Busstider</div><div class="bus-separator"></div><div>Stop not found</div>';
                         }
                     } catch (e) {
-                        document.getElementById('buses').textContent = 'Bus API unavailable';
+                        document.getElementById('buses').innerHTML = '<div class="bus-title">Busstider</div><div class="bus-separator"></div><div>Bus API unavailable</div>';
                     }
                 } else if (xhr.readyState === 4) {
-                    document.getElementById('buses').textContent = 'Bus info unavailable';
+                    document.getElementById('buses').innerHTML = '<div class="bus-title">Busstider</div><div class="bus-separator"></div><div>Bus info unavailable</div>';
                 }
             };
             xhr.onerror = function() {
-                document.getElementById('buses').textContent = 'Bus info unavailable';
+                document.getElementById('buses').innerHTML = '<div class="bus-title">Busstider</div><div class="bus-separator"></div><div>Bus info unavailable</div>';
             };
             xhr.send();
         }
@@ -228,7 +268,7 @@
         function fetchBusesByStopId(stopId) {
             // This would fetch departures for a specific stop ID
             // Implementation depends on available API endpoints
-            document.getElementById('buses').textContent = 'Buses at Dyre Halses gate: Check ATB app';
+            document.getElementById('buses').innerHTML = '<div class="bus-title">Busstider</div><div class="bus-separator"></div><div>Buses at Dyre Halses gate: Check ATB app</div>';
         }
         
         // Initialize
